@@ -1,0 +1,228 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * milo design system — cream risograph paper, plum ink, blush pink accents.
+ * display: instrument serif
+ * body: space mono, with poppins for small labels
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-blush: var(--blush);
+  --color-blush-deep: var(--blush-deep);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-sans: "Space Mono", ui-monospace, monospace;
+  --font-ui: "Poppins", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.25rem;
+
+  --paper: oklch(0.965 0.048 105.5);
+  --ink: oklch(0.235 0.078 20.5);
+  --blush: oklch(0.855 0.062 12.5);
+  --blush-deep: oklch(0.775 0.098 10);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(0.985 0.03 105);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--blush);
+  --secondary: var(--blush);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.935 0.045 100);
+  --muted-foreground: oklch(0.42 0.055 24);
+  --accent: var(--blush);
+  --accent-foreground: var(--ink);
+  --destructive: oklch(0.52 0.19 25);
+  --destructive-foreground: oklch(0.98 0.02 100);
+  --border: oklch(0.83 0.05 60);
+  --input: oklch(0.83 0.05 60);
+  --ring: var(--blush-deep);
+
+  --paper-grain:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in oklab, var(--ink) 4%, transparent) 0px,
+      color-mix(in oklab, var(--ink) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--ink) 3%, transparent) 0px,
+      color-mix(in oklab, var(--ink) 3%, transparent) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    background-image: var(--paper-grain);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    text-transform: lowercase;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+  }
+}
+
+/* tall condensed didone poster headline */
+@utility poster {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+}
+
+/* handwritten note card — no maroon background, ink text, pink underline */
+@utility plaque {
+  background-color: transparent;
+  color: var(--ink);
+  border: none;
+  padding: 1.75rem 1.5rem;
+}
+
+@utility plaque-line {
+  font-family: "Morphosa Bag", var(--font-display);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-color: var(--blush-deep);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
+/* small stamped corner labels */
+@utility stamp {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 0.6875rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  font-style: italic;
+}
+
+@utility card-paper {
+  background-color: var(--card);
+  border: 2px solid var(--ink);
+}
+
+@utility link-underline {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+
+@font-face {
+  font-family: "Antically";
+  src: url("/fonts/antically.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@utility signature {
+  font-family: "Antically", var(--font-display);
+  font-weight: 400;
+  text-transform: none;
+}
+
+@font-face {
+  font-family: "Morphosa Bag";
+  src: url("/fonts/morphosa-bag.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@utility cta-btn {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@keyframes task-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility task-item {
+  animation: task-reveal 0.4s ease-out both;
+}
+
+/* mini id card flip */
+@utility flip-scene {
+  perspective: 1200px;
+}
+
+@utility flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@utility flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@utility flip-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+@utility flipped {
+  transform: rotateY(180deg);
+}
