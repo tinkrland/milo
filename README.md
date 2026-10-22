@@ -14,5 +14,6 @@ one repo, two parts, the same shape as his sister prixie:
   contract: the walks, the coax engine, the follow-up cadence, the
   gates, and what is honestly not built yet.
 
-`docs/research/` holds the seams the engine rides: what prixie lends,
-what livekit dials.
+`coverage.md/` is the honest ledger: every toolbox capability and
+every platform, its status read off the code. `docs/research/` holds
+the seams the engine rides: what prixie lends, what livekit dials.
