@@ -13,9 +13,11 @@ create table if not exists public.missions (
   attempts text[] not null default '{}',
   target_url text,
   them_email text,
+  ticket_url text,
+  forum_url text,
   ticket_ref text,
   channel text not null default 'unassigned'
-    check (channel in ('browser', 'email', 'discord', 'phone', 'unassigned')),
+    check (channel in ('browser', 'email', 'discord', 'portal', 'forum', 'phone', 'unassigned')),
   status text not null default 'briefed'
     check (status in ('briefed', 'working', 'waiting_on_them', 'boss_decision', 'resolved', 'stood_down')),
   urgency text not null default 'whenever',

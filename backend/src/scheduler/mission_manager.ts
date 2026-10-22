@@ -43,6 +43,13 @@ export interface WalkReport {
   submitted: boolean;
   detail: string;
   themEmail: string | null;
+  // the home of the case when the door creates one: the portal ticket
+  // url or the forum topic url. follow-ups walk back to it.
+  ticketUrl: string | null;
+  forumTopicUrl: string | null;
+  // when the door dead-ends and names the next door, the mission
+  // bounces there instead of parking: same case, new channel.
+  pointer: { channel: "email" | "browser" | "discord"; target: string; note: string } | null;
   evidence: Array<{ kind: "screenshot" | "log" | "text" | "link" | "file"; label: string; content?: string }>;
 }
 
@@ -126,12 +133,41 @@ export async function executeMission(
         body: message,
         trigger: "first_contact",
       });
-      await deps.store.updateMission(mission.id, {
+      const home: Record<string, unknown> = {
         status: "waiting_on_them",
         last_contact_at: now.toISOString(),
         them_email: report.themEmail,
-      });
+      };
+      if (report.ticketUrl) {
+        home.ticket_url = report.ticketUrl;
+        home.channel = "portal";
+      }
+      if (report.forumTopicUrl) {
+        home.forum_url = report.forumTopicUrl;
+      }
+      await deps.store.updateMission(mission.id, home as any);
       return `submitted: ${report.detail}`;
+    }
+
+    // the bounce: when the walk dead-ends and the page (or the bot on
+    // it) names the next door, the mission moves there instead of
+    // parking. same case, new channel, the evidence stays.
+    if (!report.submitted && report.pointer) {
+      await deps.store.addEvidence({
+        mission_id: mission.id,
+        kind: "text",
+        label: "bounce",
+        content: report.pointer.note,
+      });
+      const patch: Record<string, unknown> = { status: "working", claim_token: null };
+      if (report.pointer.channel === "email") patch.them_email = report.pointer.target;
+      if (report.pointer.channel === "browser") patch.target_url = report.pointer.target;
+      if (report.pointer.channel === "discord") {
+        patch.channel = "discord";
+        patch.target_url = report.pointer.target;
+      }
+      await deps.store.updateMission(mission.id, patch as any);
+      return `bounced: ${report.pointer.note}`;
     }
 
     // the walk failed: if a door was found anyway, the inbox works;
@@ -174,7 +210,36 @@ export async function executeMission(
   }
 
   if (mission.status === "waiting_on_them") {
-    // polite persistence: one calm line, the clock resets. no reply
+    // polite persistence, per channel. the email leg sends one calm
+    // line; the portal, discord, and forum legs walk back and READ
+    // first, because their status pages say what actually happened.
+    return await followUp(mission, deps, now);
+  }
+
+  return `nothing to do at status ${mission.status}`;
+}
+
+// the follow-up, dispatched by the mission's channel. every branch
+// resets the clock only when it actually sent something.
+async function followUp(
+  mission: MissionRecord,
+  deps: { store: MissionStore; walkSite: SiteWalker; sendMail: MailSender },
+  now: Date,
+): Promise<string> {
+  {
+    if (mission.ticket_url) {
+      const { followUpPortal } = await import("../services/portal_followup.ts");
+      return await followUpPortal(mission, deps.store, now);
+    }
+    if (mission.forum_url) {
+      const { followUpForum } = await import("../services/forums.ts");
+      return await followUpForum(mission, deps.store, now);
+    }
+    if (mission.channel === "discord" && mission.target_url) {
+      const { followUpDiscord } = await import("../services/discord_support.ts");
+      return await followUpDiscord(mission, deps.store, now);
+    }
+    // the email leg: one calm line, the clock resets. no reply
     // channel means the follow-up parks honestly instead of pretending.
     if (!mission.them_email) {
       await deps.store.updateMission(mission.id, {
@@ -261,7 +326,7 @@ export async function runManagerOnce(
 // what the tests replace.
 // ---------------------------------------------------------------------------
 
-import { createSession, stopSession } from "../services/browserbase.ts";
+import { createSession, stopSession, readSessionUrl } from "../services/browserbase.ts";
 import { findSupportPage, openChatWidget, fillTicketForm, submitForm } from "../services/support_sites.ts";
 
 export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise<WalkReport> => {
@@ -276,9 +341,9 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
     if (!supportPage.found) {
       if (supportPage.walk === "footer_email" && supportPage.url) {
         themEmail = supportPage.url.replace("mailto:", "");
-        return { submitted: false, detail: supportPage.detail, themEmail, evidence };
+        return { submitted: false, detail: supportPage.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
       }
-      return { submitted: false, detail: supportPage.detail, themEmail: null, evidence };
+      return { submitted: false, detail: supportPage.detail, themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
     }
 
     // the chat widget first: he opens it, waits in the queue, explains
@@ -291,16 +356,22 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
     evidence.push({ kind: "text", label: "form read", content: form.outcome.detail });
     if (form.outcome.found && form.messageSent) {
       const submitted = await submitForm(session.id);
+      // after a portal submits, the session often sits on the ticket
+      // page: that url is the case home when the walk can read it.
+      const ticketUrl = await readSessionUrl(session.id);
       return {
         submitted,
         detail: submitted
           ? `submitted via ${chat.found ? "chat widget" : "ticket form"}: ${form.outcome.detail}`
           : `the form would not submit: ${form.outcome.detail}`,
         themEmail,
+        ticketUrl: submitted && ticketUrl && /ticket|request|case/.test(ticketUrl) ? ticketUrl : null,
+        forumTopicUrl: null,
+        pointer: null,
         evidence,
       };
     }
-    return { submitted: false, detail: form.outcome.detail, themEmail, evidence };
+    return { submitted: false, detail: form.outcome.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
   } finally {
     if (session) {
       await stopSession(session.id).catch(() => {});

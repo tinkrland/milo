@@ -312,3 +312,18 @@ export async function readFileInput(
     return null;
   }
 }
+
+// the session's current url: where the walk stands. a portal submit
+// lands on the ticket page, and that url is the case home.
+export async function readSessionUrl(sessionId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.browserbase.com/v1/sessions/${sessionId}`, {
+      headers: { "x-bb-api-key": Deno.env.get("BROWSERBASE_API_KEY")! },
+    });
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => ({}));
+    return data?.status?.page_url ?? data?.page_url ?? null;
+  } catch {
+    return null;
+  }
+}

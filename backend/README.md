@@ -18,7 +18,7 @@ closed), same consent policy riding every page he ever opens.
 - **database:** [Supabase](https://supabase.com) (`npm:@supabase/supabase-js`)
 - **browser engine:** [Browserbase](https://browserbase.com) (the walk engine: support pages, chat widgets, forms)
 - **mail:** agentmail-style inbox (briefs in, words out, replies back)
-- **phone leg:** [CALL-E](https://heycall-e.com) seam (plan/confirm/run; fails closed without a key)
+- **phone leg:** [LiveKit SIP](https://livekit.io) (milo owns the IVR navigation: menu tree in, DTMF out, hold patience; fails closed without keys)
 - **zero platform lock-in:** deployable anywhere deno runs
 
 ## the house rules, in code
@@ -38,6 +38,15 @@ closed), same consent policy riding every page he ever opens.
   cannot ride is dropped WITH a receipt, never silently.
 - **he never acts AS the boss.** forms get `MILO_IDENTITY` (default
   milo); the phone states "calling on behalf", never "i am".
+- **coax, don't shout.** most support walls are the company's own ai
+  agent. the loop is a state machine: explain once, insist politely,
+  demand the human after three form letters, hand the human the whole
+  story in one message, and bounce to the door the bot names when it
+  walls.
+- **the status is read, never assumed.** a portal ticket's follow-up
+  walks back to the ticket page first: pending means a human answered
+  and it is the boss's turn, solved closes the case, only a quiet open
+  ticket earns the reply.
 - **fails closed.** no creds means the leg reports "not configured",
   never pretends to work. the health route says exactly which legs are
   on.
@@ -60,7 +69,11 @@ backend/
     │   ├── supabase.ts             # the case files + the claim lease
     │   ├── evidence.ts             # consolidation planning against real constraints
     │   ├── support_sites.ts        # the walks: support page, chat widget, ticket form
-    │   └── call_e.ts               # the phone seam (plan/confirm/run, fails closed)
+    │   ├── coax.ts                 # the ai-agent coax loop: explain, insist, demand the human
+    │   ├── portal_followup.ts      # zendesk and cousins: status read off the page, reply in thread
+    │   ├── forums.ts               # discourse walks: post the question, read the topic back
+    │   ├── discord_support.ts      # the support server: post the question, watch the thread
+    │   └── ivr.ts                  # the livekit sip phone leg: milo at the menu wheel
     ├── scheduler/
     │   └── mission_manager.ts      # the dispatcher: claim, execute, follow up
     └── routes/
@@ -101,7 +114,8 @@ stood_down (final, always honored)
 | `AGENTMAIL_WEBHOOK_SECRET` | inbound mail |
 | `MILO_BOSS_EMAIL` | who counts as the boss (exact address) |
 | `MILO_IDENTITY` | the name he acts as (default `milo`) |
-| `CALLE_API_KEY` | the phone leg (optional, fails closed) |
+| `LIVEKIT_SIP_TRUNK_ID`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | the phone leg (optional, fails closed) |
+| `DISCORD_BOT_TOKEN` | the discord leg (optional, fails closed) |
 | `MILO_AUTOTICK=1`, `MILO_TICK_MINUTES` | the built-in follow-up clock |
 
 ## run
@@ -131,11 +145,15 @@ scheduler at `POST /api/tick` every few minutes.
 
 ## what is not built yet (honestly)
 
-- the discord watcher (a support server's channel is a door like any
-  other; the browser walk is the engine, the listener is not)
-- the live walkthrough of the chat widget queue (the widget opens and
-  the form walk works; multi-turn widget chat needs the walk to loop)
-- the call-e run is a seam only: the plan/confirm/run contract is
-  coded and tested fails-closed, but no key means no calls
+- the coax loop's transport: the state machine is tested pure
+  (coax.ts); wiring it INTO the chat widget's message box is the next
+  walk, multi-turn with the widget's own queue
+- the livekit rtc wiring: the sip seam's dispatch call is real, the
+  dtmf/stt/hangup halves ride prixie's lazy rtc-node factory at
+  deploy time (the same pattern the voice branch uses); no keys means
+  no calls, reported not faked
+- the discord gateway listener: posting and reading are real through
+  the REST transport; the live MESSAGE_CREATE watcher is prixie's
+  discord_watcher shape and ports next
 - milo's own identity on forms that demand the boss's real name is
   `MILO_IDENTITY` and an open policy question, not a silent guess

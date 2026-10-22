@@ -48,6 +48,8 @@ function mission(over: Partial<MissionRecord>): MissionRecord {
     attempts: [],
     target_url: "https://example.com/support",
     them_email: null,
+    ticket_url: null,
+    forum_url: null,
     ticket_ref: null,
     channel: "browser",
     status: "working",
@@ -67,6 +69,9 @@ const okWalker: SiteWalker = async () => ({
   submitted: true,
   detail: "submitted via ticket form: form read (4 fields), message 96/500 characters",
   themEmail: "support@example.com",
+  ticketUrl: "https://vendor.com/requests/4471",
+  forumTopicUrl: null,
+  pointer: null,
   evidence: [{ kind: "text", label: "form read", content: "4 fields" }],
 });
 
@@ -90,6 +95,9 @@ Deno.test("a walk that fails with an email door: the inbox works", async () => {
     submitted: false,
     detail: "no form on the page",
     themEmail: "support@example.com",
+    ticketUrl: null,
+    forumTopicUrl: null,
+    pointer: null,
     evidence: [],
   });
   const result = await executeMission(missions.get("m1")!, { store, walkSite: walker, sendMail: noSend });
@@ -104,6 +112,9 @@ Deno.test("a walk that fails with no door: parked, with what he saw", async () =
     submitted: false,
     detail: "no support door found on the home page",
     themEmail: null,
+    ticketUrl: null,
+    forumTopicUrl: null,
+    pointer: null,
     evidence: [],
   });
   const result = await executeMission(missions.get("m1")!, { store, walkSite: walker, sendMail: noSend });
@@ -118,7 +129,7 @@ Deno.test("a refund brief parks BEFORE the walk, with the question stated", asyn
   let walked = false;
   const walker: SiteWalker = async () => {
     walked = true;
-    return { submitted: false, detail: "", themEmail: null, evidence: [] };
+    return { submitted: false, detail: "", themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence: [] };
   };
   const result = await executeMission(missions.get("m1")!, { store, walkSite: walker, sendMail: noSend });
   assertEquals(result, "parked: the brief touches something that is yours to settle");
@@ -172,4 +183,31 @@ Deno.test("a failed send leaves the clock standing, never invents a thread", asy
   const result = await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: failing });
   assertEquals(result.includes("smtp down"), true);
   assertEquals(missions.get("m1")!.follow_up_count, 0); // not counted: it did not happen
+});
+
+Deno.test("a portal submit records the case home: ticket_url, channel portal", async () => {
+  const { store, missions } = fakeStore();
+  missions.set("m1", mission({}));
+  await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: noSend });
+  assertEquals(missions.get("m1")!.ticket_url, "https://vendor.com/requests/4471");
+  assertEquals(missions.get("m1")!.channel, "portal");
+});
+
+Deno.test("a dead end that names the next door bounces the mission there", async () => {
+  const { store, missions, events } = fakeStore();
+  missions.set("m1", mission({}));
+  const walker: SiteWalker = async () => ({
+    submitted: false,
+    detail: "the chat bot said to email billing",
+    themEmail: null,
+    ticketUrl: null,
+    forumTopicUrl: null,
+    pointer: { channel: "email", target: "billing@vendor.com", note: "the agent named billing@vendor.com" },
+    evidence: [],
+  });
+  const result = await executeMission(missions.get("m1")!, { store, walkSite: walker, sendMail: noSend });
+  assertEquals(result, "bounced: the agent named billing@vendor.com");
+  assertEquals(missions.get("m1")!.them_email, "billing@vendor.com");
+  assertEquals(missions.get("m1")!.status, "working");
+  assertEquals(events.some((e) => e.startsWith("evidence bounce")), true);
 });

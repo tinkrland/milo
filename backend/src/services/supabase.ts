@@ -46,6 +46,8 @@ export interface MissionRecord {
   boss_decision_question: string | null;
   ticket_ref: string | null;
   them_email: string | null;
+  ticket_url: string | null;
+  forum_url: string | null;
   claim_token: string | null;
   claimed_at: string | null;
   created_date?: string;
