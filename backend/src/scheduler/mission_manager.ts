@@ -239,6 +239,10 @@ async function followUp(
       const { followUpDiscord } = await import("../services/discord_support.ts");
       return await followUpDiscord(mission, deps.store, now);
     }
+    if (mission.channel === "slack" && mission.target_url) {
+      const { followUpSlack } = await import("../services/slack_support.ts");
+      return await followUpSlack(mission, deps.store, now);
+    }
     // the email leg: one calm line, the clock resets. no reply
     // channel means the follow-up parks honestly instead of pretending.
     if (!mission.them_email) {

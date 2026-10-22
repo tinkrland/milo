@@ -50,6 +50,7 @@ function mission(over: Partial<MissionRecord>): MissionRecord {
     them_email: null,
     ticket_url: null,
     forum_url: null,
+    slack_thread_ts: null,
     ticket_ref: null,
     channel: "browser",
     status: "working",

@@ -5,12 +5,13 @@
 
 alter table public.missions
   add column if not exists ticket_url text,
-  add column if not exists forum_url text;
+  add column if not exists forum_url text,
+  add column if not exists slack_thread_ts text;
 
 alter table public.missions
   drop constraint if exists missions_channel_check;
 
 alter table public.missions
   add constraint missions_channel_check check (
-    channel in ('browser', 'email', 'discord', 'portal', 'forum', 'phone', 'unassigned')
+    channel in ('browser', 'email', 'discord', 'slack', 'portal', 'forum', 'phone', 'unassigned')
   );

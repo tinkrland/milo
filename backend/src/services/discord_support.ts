@@ -152,3 +152,11 @@ export async function followUpDiscord(
   await store.updateMission(mission.id, { follow_up_count: mission.follow_up_count + 1, last_contact_at: now.toISOString() });
   return `bumped the discord thread: "${line}"`;
 }
+
+// role pings, the honest rule: only when the channel allows them, and
+// @everyone and @here never ride, on any channel, in any mood.
+export function rolePingMention(roleName: string | null, channelAllowsRolePings: boolean): string {
+  if (!roleName || !channelAllowsRolePings) return "";
+  if (/everyone|here/i.test(roleName)) return ""; // never, ever
+  return `<@&${roleName}> `;
+}

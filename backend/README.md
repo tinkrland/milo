@@ -73,6 +73,7 @@ backend/
     │   ├── portal_followup.ts      # zendesk and cousins: status read off the page, reply in thread
     │   ├── forums.ts               # discourse walks: post the question, read the topic back
     │   ├── discord_support.ts      # the support server: post the question, watch the thread
+    │   ├── slack_support.ts        # the #help channel: same shape as discord
     │   └── ivr.ts                  # the livekit sip phone leg: milo at the menu wheel
     ├── scheduler/
     │   └── mission_manager.ts      # the dispatcher: claim, execute, follow up
@@ -116,6 +117,7 @@ stood_down (final, always honored)
 | `MILO_IDENTITY` | the name he acts as (default `milo`) |
 | `LIVEKIT_SIP_TRUNK_ID`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | the phone leg (optional, fails closed) |
 | `DISCORD_BOT_TOKEN` | the discord leg (optional, fails closed) |
+| `SLACK_BOT_TOKEN` | the slack leg (optional, fails closed) |
 | `MILO_AUTOTICK=1`, `MILO_TICK_MINUTES` | the built-in follow-up clock |
 
 ## run
@@ -155,5 +157,11 @@ scheduler at `POST /api/tick` every few minutes.
 - the discord gateway listener: posting and reading are real through
   the REST transport; the live MESSAGE_CREATE watcher is prixie's
   discord_watcher shape and ports next
+- the discord ticket-bot triage ("opens a ticket", "pings the right
+  role when allowed"): the role-ping rule is coded (allowed only,
+  @everyone/@here never), but the ticket-bot buttons need the gateway
+  listener; the rule that rides it is pinned
+- the resume's "screenshot annotation": consolidation is real, the
+  crop-and-arrow half is not, and that is said plainly
 - milo's own identity on forms that demand the boss's real name is
   `MILO_IDENTITY` and an open policy question, not a silent guess

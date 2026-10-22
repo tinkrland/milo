@@ -130,6 +130,8 @@ const FOLLOW_UP_LINES = [
   "hi, following up on the previous message",
   "hi, is this still being investigated",
   "hi, checking whether engineering has had a chance to review this",
+  "hi, has this been escalated to the appropriate team",
+  "hi, i understand there may be a backlog — is there a timeline",
 ];
 
 export function followUpLine(count: number): string {

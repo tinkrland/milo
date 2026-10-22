@@ -36,7 +36,7 @@ export interface MissionRecord {
   problem: string;
   attempts: string[];
   target_url: string | null;
-  channel: "browser" | "email" | "discord" | "phone" | "unassigned";
+  channel: "browser" | "email" | "discord" | "slack" | "portal" | "forum" | "phone" | "unassigned";
   status: string;
   urgency: string;
   identity: string;
@@ -48,6 +48,7 @@ export interface MissionRecord {
   them_email: string | null;
   ticket_url: string | null;
   forum_url: string | null;
+  slack_thread_ts: string | null;
   claim_token: string | null;
   claimed_at: string | null;
   created_date?: string;

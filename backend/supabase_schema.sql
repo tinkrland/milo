@@ -15,9 +15,10 @@ create table if not exists public.missions (
   them_email text,
   ticket_url text,
   forum_url text,
+  slack_thread_ts text,
   ticket_ref text,
   channel text not null default 'unassigned'
-    check (channel in ('browser', 'email', 'discord', 'portal', 'forum', 'phone', 'unassigned')),
+    check (channel in ('browser', 'email', 'discord', 'slack', 'portal', 'forum', 'phone', 'unassigned')),
   status text not null default 'briefed'
     check (status in ('briefed', 'working', 'waiting_on_them', 'boss_decision', 'resolved', 'stood_down')),
   urgency text not null default 'whenever',

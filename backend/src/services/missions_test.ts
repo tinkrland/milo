@@ -60,13 +60,17 @@ Deno.test("needsBossDecision: an ordinary bug does not park", () => {
 
 // --- professional persistence ---
 
-Deno.test("followUpLine: the landing page's own words, in order", () => {
+Deno.test("followUpLine: the landing page's own six words, in order up the ladder", () => {
   assertEquals(followUpLine(0), "hi, just checking whether there is an update");
   assertEquals(followUpLine(1), "hi, following up on the previous message");
   assertEquals(followUpLine(2), "hi, is this still being investigated");
   assertEquals(followUpLine(3), "hi, checking whether engineering has had a chance to review this");
+  // the escalation ladder's own words: has it been escalated, and the
+  // backlog line the landing page shipped verbatim
+  assertEquals(followUpLine(4), "hi, has this been escalated to the appropriate team");
+  assertEquals(followUpLine(5), "hi, i understand there may be a backlog — is there a timeline");
   // and forever after, the same calm line
-  assertEquals(followUpLine(50), "hi, checking whether engineering has had a chance to review this");
+  assertEquals(followUpLine(50), "hi, i understand there may be a backlog — is there a timeline");
 });
 
 Deno.test("isFollowUpDue: the landing page's own rhythm, 3h then 3h then a day", () => {
