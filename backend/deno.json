@@ -1,0 +1,21 @@
+{
+  "tasks": {
+    "start": "deno run --allow-net --allow-env src/index.ts",
+    "dev": "deno run --watch --allow-net --allow-env src/index.ts",
+    "test": "deno test --allow-env src/"
+  },
+  "imports": {
+    "hono": "npm:hono@^4.0.0",
+    "hono/cors": "npm:hono@^4.0.0/cors",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.39.8"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.window"]
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  }
+}
