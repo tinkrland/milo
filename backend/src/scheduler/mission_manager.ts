@@ -31,6 +31,7 @@ import {
   addThreadMessage,
   claimForRun,
   getRunnableMissions,
+  listThreadMessages,
   updateMission,
 } from "../services/supabase.ts";
 import type { MissionRecord } from "../services/supabase.ts";
@@ -51,6 +52,9 @@ export interface WalkReport {
   // bounces there instead of parking: same case, new channel.
   pointer: { channel: "email" | "browser" | "discord"; target: string; note: string } | null;
   evidence: Array<{ kind: "screenshot" | "log" | "text" | "link" | "file"; label: string; content?: string }>;
+  // their calendar as read off the door page: their weekend, their
+  // zone, their hours. the follow-up clock runs on it.
+  calendar?: BusinessCalendar;
 }
 
 export type SiteWalker = (mission: MissionRecord) => Promise<WalkReport>;
@@ -62,6 +66,9 @@ export interface MissionStore {
   claimForRun(id: string, now: Date): Promise<MissionRecord | null>;
   updateMission(id: string, patch: Partial<MissionRecord>): Promise<MissionRecord>;
   addEvidence(input: { mission_id: string; kind: string; label: string; content?: string | null }): Promise<unknown>;
+  listThreadMessages(missionId: string): Promise<
+    Array<{ direction: "outbound" | "inbound"; channel: string; body: string }>
+  >;
   addThreadMessage(input: {
     mission_id: string;
     direction: "outbound" | "inbound";
@@ -78,6 +85,7 @@ const realStore: MissionStore = {
   updateMission,
   addEvidence,
   addThreadMessage,
+  listThreadMessages,
 };
 
 // ---------------------------------------------------------------------------
@@ -145,6 +153,7 @@ export async function executeMission(
       if (report.forumTopicUrl) {
         home.forum_url = report.forumTopicUrl;
       }
+      if (report.calendar) home.business_calendar = report.calendar;
       await deps.store.updateMission(mission.id, home as any);
       return `submitted: ${report.detail}`;
     }
@@ -226,22 +235,69 @@ async function followUp(
   deps: { store: MissionStore; walkSite: SiteWalker; sendMail: MailSender },
   now: Date,
 ): Promise<string> {
+  // sent around in circles is a verdict, not a vibe: read the whole
+  // history first. circling changes what the follow-up says (name it
+  // plainly, once) and the second time it parks with the boss,
+  // because repeating an escalation is just pestering with extra steps.
+  const history = await deps.store.listThreadMessages(mission.id).catch(() => [] as Array<{ direction: "outbound" | "inbound"; channel: string; body: string }>);
+  const events: HistoryEvent[] = history.map((m) => ({
+    direction: m.direction === "outbound" ? "out" : "in",
+    channel: m.channel,
+    body: m.body,
+  }));
+  const circle = detectCircling(events);
+  if (circle.circling) {
+    await deps.store.addEvidence({
+      mission_id: mission.id,
+      kind: "text",
+      label: "circle check",
+      content: circle.line,
+    });
+    const alreadyEscalated = history.some(
+      (m) => m.direction === "outbound" && m.body.includes("sent around in circles"),
+    );
+    if (circle.recommendation === "escalate" && alreadyEscalated) {
+      await deps.store.updateMission(mission.id, {
+        status: "boss_decision",
+        boss_decision_question: `he has been sent around in circles (${circle.signals.join("; ")}) and has already named it once. new door, or let it go?`,
+      });
+      return `parked with the boss: ${circle.line}`;
+    }
+  }
+
+  const overrideLine = circle.circling && circle.recommendation === "escalate"
+    ? circleEscalationLine(mission.problem, circle.signals)
+    : undefined;
+  const result = await followUpByChannel(mission, deps, now, overrideLine);
+  return circle.circling && !overrideLine
+    ? `${result} (circles noted: ${circle.signals.join("; ")})`
+    : result;
+}
+
+// the per-channel follow-up, with the circle escalation line riding
+// as the override when the history earned it.
+async function followUpByChannel(
+  mission: MissionRecord,
+  deps: { store: MissionStore; walkSite: SiteWalker; sendMail: MailSender },
+  now: Date,
+  overrideLine?: string,
+): Promise<string> {
   {
     if (mission.ticket_url) {
       const { followUpPortal } = await import("../services/portal_followup.ts");
-      return await followUpPortal(mission, deps.store, now);
+      return await followUpPortal(mission, deps.store, now, overrideLine);
     }
     if (mission.forum_url) {
       const { followUpForum } = await import("../services/forums.ts");
-      return await followUpForum(mission, deps.store, now);
+      return await followUpForum(mission, deps.store, now, overrideLine);
     }
     if (mission.channel === "discord" && mission.target_url) {
       const { followUpDiscord } = await import("../services/discord_support.ts");
-      return await followUpDiscord(mission, deps.store, now);
+      return await followUpDiscord(mission, deps.store, now, overrideLine);
     }
     if (mission.channel === "slack" && mission.target_url) {
       const { followUpSlack } = await import("../services/slack_support.ts");
-      return await followUpSlack(mission, deps.store, now);
+      return await followUpSlack(mission, deps.store, now, overrideLine);
     }
     // the email leg: one calm line, the clock resets. no reply
     // channel means the follow-up parks honestly instead of pretending.
@@ -253,7 +309,7 @@ async function followUp(
       });
       return "parked: no reply channel for the follow-up";
     }
-    const line = followUpLine(mission.follow_up_count);
+    const line = overrideLine ?? followUpLine(mission.follow_up_count, mission.problem);
     const sent = await deps.sendMail({
       to: mission.them_email,
       subject: `re: support: ${mission.title}`.slice(0, 200),
@@ -284,6 +340,15 @@ async function followUp(
 // the loop
 // ---------------------------------------------------------------------------
 
+// the calendar a mission's clock runs on: what the walk read off the
+// door page when there is one, and the honest default (the boss's
+// zone, the universal weekend, labeled assumed) when nothing was read.
+export function missionCalendar(mission: MissionRecord): BusinessCalendar {
+  const raw = mission.business_calendar as Partial<BusinessCalendar> | null | undefined;
+  if (!raw || !raw.weekend || !raw.tz) return defaultCalendar();
+  return { ...defaultCalendar(), ...raw };
+}
+
 export async function runManagerOnce(
   deps?: Partial<{ store: MissionStore; walkSite: SiteWalker; sendMail: MailSender }>,
 ): Promise<{ ran: Array<{ mission_id: string; result: string }>; skipped: string[] }> {
@@ -302,7 +367,12 @@ export async function runManagerOnce(
     if (mission.status === "waiting_on_them") {
       if (
         !mission.last_contact_at ||
-        !isFollowUpDue(new Date(mission.last_contact_at), mission.follow_up_count, now)
+        !isFollowUpDueSmart(
+          new Date(mission.last_contact_at),
+          mission.follow_up_count,
+          now,
+          missionCalendar(mission),
+        )
       ) {
         skipped.push(mission.id);
         continue;
@@ -334,6 +404,13 @@ import { createSession, stopSession, readSessionUrl } from "../services/browserb
 import { openChatWidget, fillTicketForm, submitForm } from "../services/support_sites.ts";
 import { findSupportDoor } from "../services/support_discovery.ts";
 import { runCoaxInWidget, cdpWidgetTransport } from "../services/chat_widget.ts";
+import {
+  detectBusinessCalendar,
+  defaultCalendar,
+  isFollowUpDueSmart,
+  type BusinessCalendar,
+} from "../services/business_calendar.ts";
+import { detectCircling, circleEscalationLine, type HistoryEvent } from "../services/circle_detection.ts";
 
 export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise<WalkReport> => {
   const brief = parseBrief(mission.brief);
@@ -345,12 +422,20 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
     session = await createSession();
     const door = await findSupportDoor(session.id, mission.target_url!);
     evidence.push({ kind: "text", label: "support door", content: door.detail });
+    // their hours and days, read off their own page, beat every
+    // guess: the follow-up clock runs on what the door itself says.
+    const calendar = detectBusinessCalendar(door.pageText);
+    evidence.push({
+      kind: "text",
+      label: "their business calendar",
+      content: `${calendar.source}: weekend ${calendar.weekend.join(",")}, ${calendar.workStart}-${calendar.workEnd} in ${calendar.tz}`,
+    });
     if (!door.found) {
       if (door.door === "footer_email" && door.url) {
         themEmail = door.url.replace("mailto:", "");
-        return { submitted: false, detail: door.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+        return { submitted: false, detail: door.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence, calendar };
       }
-      return { submitted: false, detail: door.detail, themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+      return { submitted: false, detail: door.detail, themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence, calendar };
     }
 
     // the chat widget first: he opens it, waits in the queue, and runs
@@ -365,10 +450,10 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
       evidence.push({ kind: "text", label: "chat conversation", content: run.detail });
       if (run.outcome === "human") {
         // a human has the story; the case lives with the boss now.
-        return { submitted: true, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+        return { submitted: true, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence, calendar };
       }
       if (run.outcome === "bounce" && run.pointer) {
-        return { submitted: false, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: run.pointer, evidence };
+        return { submitted: false, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence, calendar };
       }
     }
     const form = await fillTicketForm(session.id, brief, mission.identity);
@@ -388,9 +473,10 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
         forumTopicUrl: null,
         pointer: null,
         evidence,
+        calendar,
       };
     }
-    return { submitted: false, detail: form.outcome.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+    return { submitted: false, detail: form.outcome.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence, calendar };
   } finally {
     if (session) {
       await stopSession(session.id).catch(() => {});

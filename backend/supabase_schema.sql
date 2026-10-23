@@ -14,6 +14,10 @@ create table if not exists public.missions (
   target_url text,
   them_email text,
   ticket_url text,
+  -- their business calendar as detected on the walk: the weekend
+  -- days, the timezone, the hours, and where the knowledge came
+  -- from (stated beats country beats assumed)
+  business_calendar jsonb,
   forum_url text,
   slack_thread_ts text,
   ticket_ref text,

@@ -141,11 +141,12 @@ export async function bumpTopic(
   sessionId: string,
   topicUrl: string,
   followUpCount: number,
+  overrideLine?: string,
 ): Promise<{ sent: boolean; detail: string }> {
   const verdict = await assertLinkSafe(topicUrl);
   if (!verdict.safe) return { sent: false, detail: `blocked by safety gate: ${verdict.reason}` };
   await navigateTo(sessionId, topicUrl);
-  const line = bumpLine(followUpCount);
+  const line = overrideLine ?? bumpLine(followUpCount);
   const typed = await findAndType(
     sessionId,
     'textarea[name="body"], .d-editor-textarea, textarea[placeholder*="reply" i], textarea',
@@ -177,6 +178,7 @@ export async function followUpForum(
   mission: MissionRecord,
   store: MissionStore,
   now: Date,
+  overrideLine?: string,
 ): Promise<string> {
   const session = await createSession();
   let read: { replies: number; hasStaffReply: boolean; detail: string };
@@ -199,7 +201,7 @@ export async function followUpForum(
   const bumpSession = await createSession();
   let sent = { sent: false, detail: "" };
   try {
-    sent = await bumpTopic(bumpSession.id, mission.forum_url!, mission.follow_up_count);
+    sent = await bumpTopic(bumpSession.id, mission.forum_url!, mission.follow_up_count, overrideLine);
   } finally {
     await stopSession(bumpSession.id).catch(() => {});
   }

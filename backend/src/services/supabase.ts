@@ -52,6 +52,9 @@ export interface MissionRecord {
   claim_token: string | null;
   claimed_at: string | null;
   created_date?: string;
+  // their business calendar as detected on the walk: weekend days,
+  // timezone, work hours, and where the knowledge came from.
+  business_calendar?: Record<string, unknown> | null;
 }
 
 export async function createMission(input: {
@@ -215,6 +218,17 @@ export interface ThreadMessageRecord {
   message_id: string | null;
   trigger: string | null;
   sent_at: string;
+}
+
+export async function listThreadMessages(missionId: string): Promise<ThreadMessageRecord[]> {
+  const { data, error } = await getSupabase()
+    .from("thread_messages")
+    .select("*")
+    .eq("mission_id", missionId)
+    .order("created_date", { ascending: true })
+    .limit(200);
+  if (error) throw new Error(`listThreadMessages failed: ${error.message}`);
+  return (data ?? []) as ThreadMessageRecord[];
 }
 
 export async function addThreadMessage(input: {

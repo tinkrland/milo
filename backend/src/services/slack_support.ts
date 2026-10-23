@@ -113,6 +113,7 @@ export async function followUpSlack(
   mission: MissionRecord,
   store: MissionStore,
   now: Date,
+  overrideLine?: string,
 ): Promise<string> {
   const transport = realSlackTransport();
   const channelId = (mission.target_url || "").match(/^[A-Z0-9]+$/)?.[0] ?? null;
@@ -134,7 +135,7 @@ export async function followUpSlack(
   if (!decision.bump) {
     return `watching the slack thread: ${thread.humanReplies} human replies`;
   }
-  const line = slackBumpLine(mission.follow_up_count);
+  const line = overrideLine ?? slackBumpLine(mission.follow_up_count);
   const sent = await transport.postMessage(channelId, line);
   if (!sent.ok) {
     return `the slack bump refused (${sent.error}); the clock stands, he tries again next pass`;

@@ -122,6 +122,7 @@ export async function followUpDiscord(
   mission: MissionRecord,
   store: MissionStore,
   now: Date,
+  overrideLine?: string,
 ): Promise<string> {
   const transport = realDiscordTransport();
   const channelId = (mission.target_url || "").match(/\d{15,}/)?.[0] ?? null;
@@ -143,7 +144,7 @@ export async function followUpDiscord(
   if (!decision.bump) {
     return `watching the discord thread: ${thread.humanReplies} human replies`;
   }
-  const line = threadBumpLine(mission.follow_up_count);
+  const line = overrideLine ?? threadBumpLine(mission.follow_up_count);
   const sent = await transport.postMessage(channelId, line);
   if (!sent.ok) {
     return `the discord bump refused (${sent.error}); the clock stands, he tries again next pass`;

@@ -94,8 +94,9 @@ export async function replyInTicket(
   sessionId: string,
   ticketUrl: string,
   followUpCount: number,
+  overrideLine?: string,
 ): Promise<{ sent: boolean; detail: string; line: string }> {
-  const line = followUpLine(followUpCount);
+  const line = overrideLine ?? followUpLine(followUpCount);
   for (const sel of REPLY_SELECTORS) {
     if (await elementExists(sessionId, sel, 2000)) {
       const typed = await findAndType(sessionId, sel, line, 6000);
@@ -131,6 +132,7 @@ export async function followUpPortal(
   mission: MissionRecord,
   store: MissionStore,
   now: Date,
+  overrideLine?: string,
 ): Promise<string> {
   const read = await (async () => {
     const session = await createSession();
@@ -163,7 +165,7 @@ export async function followUpPortal(
   const session = await createSession();
   let sent = { sent: false, detail: "", line: "" };
   try {
-    sent = await replyInTicket(session.id, mission.ticket_url!, mission.follow_up_count);
+    sent = await replyInTicket(session.id, mission.ticket_url!, mission.follow_up_count, overrideLine);
   } finally {
     await stopSession(session.id).catch(() => {});
   }

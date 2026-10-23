@@ -2,6 +2,22 @@
 
 status: working
 
+## which two days (oct 23 2026)
+
+the clock now runs on THEIR calendar, not ours:
+
+- `business_calendar.ts`: the door's own stated hours are believed
+  first (labeled stated), the verified country table second (the
+  gulf sun-thu, iran and afghanistan thu-fri, egypt and israel
+  fri-sat, nepal sat only), and the honest default third (assumed).
+- the cadence counts their business days: +2 days from their
+  thursday lands their monday. bumps land on their working
+  mornings only, in their timezone, so friday 9am here can be
+  10pm there and nothing fires, and one weekend never gets two
+  bumps.
+- pinned in `business_calendar_test.ts`, one rule per test. run
+  `migrations/20261023a_business_calendar.sql` before deploy.
+
 the schedule is persistent, not pushy. never more than two
 follow-ups in one day, and none inside working hours the boss did
 not pick.

@@ -19,6 +19,7 @@ coverage.md, folder edition.
 - [screenshot annotation](toolbox/screenshot%20annotation/main.md): designed
 - [attachment size limits](toolbox/attachment%20size%20limits/main.md): working
 - [follow up scheduling](toolbox/follow%20up%20scheduling/main.md): working
+- [circle detection](toolbox/circle%20detection/main.md): working
 - [escalation requests](toolbox/escalation%20requests/main.md): working
 
 ## platforms
@@ -39,5 +40,5 @@ finding where tf the support thing is comes first, and it is built:
 and verdicts every landing. it is the front door of every browser
 platform above, pinned in its own test.
 
-statuses were read off the code on oct 23 2026. when a claim
+the behavioral skills, each mapped to code and pinned tests, live in docs/skills.md. statuses were read off the code on oct 23 2026. when a claim
 changes, change the row with it.

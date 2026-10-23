@@ -17,6 +17,7 @@ closed), same consent policy riding every page he ever opens.
 - **web framework:** [Hono](https://hono.dev) (`npm:hono`)
 - **database:** [Supabase](https://supabase.com) (`npm:@supabase/supabase-js`)
 - **browser engine:** [Browserbase](https://browserbase.com) (the walk engine: support pages, chat widgets, forms)
+- **behavioral skills:** [docs/skills.md](../docs/skills.md) (persistence, which two days, circle detection, salience, each mapped to code and pinned tests)
 - **mail:** agentmail-style inbox (briefs in, words out, replies back)
 - **phone leg:** [LiveKit SIP](https://livekit.io) (milo owns the IVR navigation: menu tree in, DTMF out, hold patience; fails closed without keys)
 - **zero platform lock-in:** deployable anywhere deno runs
@@ -71,6 +72,8 @@ backend/
     │   ├── support_discovery.ts    # finding where tf the support thing is: ranked links, probed paths, door verdicts
     │   ├── support_sites.ts        # the walks: support page, chat widget, ticket form
     │   ├── chat_widget.ts         # the widget queue, wired: send, wait, read, send again
+    │   ├── business_calendar.ts  # WHICH two days: their weekend, their timezone, their stated hours
+    │   ├── circle_detection.ts    # sent around in circles: detected, named once, then parked with the boss
     │   ├── coax.ts                 # the ai-agent coax loop: explain, insist, demand the human
     │   ├── portal_followup.ts      # zendesk and cousins: status read off the page, reply in thread
     │   ├── forums.ts               # discourse walks: post the question, read the topic back
@@ -148,6 +151,14 @@ above, deploy anywhere deno runs (deno deploy, railway, a container).
 scheduler at `POST /api/tick` every few minutes.
 
 ## what is not built yet (honestly)
+
+- the follow-up clock now runs on the company's own calendar
+  (business_calendar.ts: their stated hours, the verified country
+  table, their timezone; no bump lands twice over one weekend). the
+  one migration that must run first is
+  migrations/20261023a_business_calendar.sql. what is not built is
+  the first LIVE observation of a wrong-weekend company: the rules
+  are pinned on verified work weeks, not on a live zendesk yet
 
 - the chat widget's first live run: the coax loop is wired now
   (chat_widget.ts: send, wait, read, send again, through the cdp

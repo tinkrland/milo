@@ -135,6 +135,9 @@ export interface SupportDoor {
   url?: string;
   door: "support_page" | "footer_email" | "none";
   verdict?: DoorVerdict;
+  // the support page's own text: their stated hours and days ride on
+  // it, and the follow-up calendar reads it before any guessing.
+  pageText?: string;
 }
 
 export async function findSupportDoor(
@@ -163,6 +166,7 @@ export async function findSupportDoor(
         url: ranked.link.href,
         door: "support_page",
         verdict: v,
+        pageText: page,
       };
     }
   }
@@ -184,6 +188,7 @@ export async function findSupportDoor(
         url: candidate,
         door: "support_page",
         verdict: v,
+        pageText: page,
       };
     }
   }

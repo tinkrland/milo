@@ -7,7 +7,10 @@ import { executeMission, type MissionStore, type SiteWalker, type WalkReport } f
 import type { MissionRecord } from "../services/supabase.ts";
 
 // the in-memory store: exactly the seam, nothing more.
+const threadHistory = new Map<string, Array<{ direction: "outbound" | "inbound"; channel: string; body: string }>>();
+
 function fakeStore(): { store: MissionStore; missions: Map<string, MissionRecord>; events: string[] } {
+  threadHistory.clear();
   const missions = new Map<string, MissionRecord>();
   const events: string[] = [];
   return {
@@ -34,6 +37,9 @@ function fakeStore(): { store: MissionStore; missions: Map<string, MissionRecord
       async addThreadMessage(input) {
         events.push(`thread ${input.direction}: ${input.body.slice(0, 40)}`);
         return null;
+      },
+      async listThreadMessages(id) {
+        return threadHistory.get(id) ?? [];
       },
     },
   };
@@ -158,7 +164,7 @@ Deno.test("the polite follow-up: one calm line, the clock resets", async () => {
     }),
   );
   const result = await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: noSend });
-  assertEquals(result, `follow-up 1 sent: "hi, just checking whether there is an update"`);
+  assertEquals(result, `follow-up 1 sent: "hi, just checking whether there is an update: the upload fails past 2mb"`);
   assertEquals(missions.get("m1")!.follow_up_count, 1);
 });
 
@@ -184,6 +190,58 @@ Deno.test("a failed send leaves the clock standing, never invents a thread", asy
   const result = await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: failing });
   assertEquals(result.includes("smtp down"), true);
   assertEquals(missions.get("m1")!.follow_up_count, 0); // not counted: it did not happen
+});
+
+Deno.test("sent around in circles: the follow-up names it plainly, once", async () => {
+  const { store, missions } = fakeStore();
+  const tpl = (n: string) => `your request #${n} has been received and is being looked into. we appreciate your patience.`;
+  missions.set(
+    "m1",
+    mission({
+      status: "waiting_on_them",
+      them_email: "support@example.com",
+      last_contact_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      follow_up_count: 2,
+    }),
+  );
+  threadHistory.set("m1", [
+    { direction: "inbound", channel: "email", body: tpl("11") },
+    { direction: "inbound", channel: "email", body: tpl("12") },
+    { direction: "inbound", channel: "email", body: tpl("13") },
+  ]);
+  const sent: string[] = [];
+  const sending: any = async (_m: unknown) => {
+    sent.push("1");
+    return { ok: true };
+  };
+  const result = await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: sending });
+  assertEquals(sent.length, 1);
+  assertEquals(result.includes("sent around in circles"), true);
+  assertEquals(result.includes("person who owns this case"), true);
+});
+
+Deno.test("the second circle parks with the boss instead of pestering again", async () => {
+  const { store, missions } = fakeStore();
+  missions.set(
+    "m1",
+    mission({
+      status: "waiting_on_them",
+      them_email: "support@example.com",
+      last_contact_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      follow_up_count: 3,
+    }),
+  );
+  threadHistory.set("m1", [
+    { direction: "outbound", channel: "email", body: "to be plain: i am being sent around in circles here" },
+    { direction: "inbound", channel: "email", body: "your request #14 has been received and is being looked into. we appreciate your patience." },
+    { direction: "inbound", channel: "email", body: "your request #15 has been received and is being looked into. we appreciate your patience." },
+    { direction: "inbound", channel: "email", body: "your request #16 has been received and is being looked into. we appreciate your patience." },
+  ]);
+  const sending: any = async () => ({ ok: true });
+  const result = await executeMission(missions.get("m1")!, { store, walkSite: okWalker, sendMail: sending });
+  assertEquals(result.startsWith("parked with the boss"), true);
+  assertEquals(missions.get("m1")!.status, "boss_decision");
+  assertEquals(missions.get("m1")!.boss_decision_question!.includes("circles"), true);
 });
 
 Deno.test("a portal submit records the case home: ticket_url, channel portal", async () => {

@@ -134,8 +134,14 @@ const FOLLOW_UP_LINES = [
   "hi, i understand there may be a backlog — is there a timeline",
 ];
 
-export function followUpLine(count: number): string {
-  return FOLLOW_UP_LINES[Math.min(count, FOLLOW_UP_LINES.length - 1)];
+// the line keeps its salient point: the follow-up carries the
+// problem's first sentence, because the next human who reads it is
+// new to the case and should not have to dig for what "this" is.
+export function followUpLine(count: number, problem?: string): string {
+  const base = FOLLOW_UP_LINES[Math.min(count, FOLLOW_UP_LINES.length - 1)];
+  if (!problem) return base;
+  const salient = (problem.split(/[.!?]/)[0] || problem).trim().slice(0, 120);
+  return salient ? `${base}: ${salient}` : base;
 }
 
 // never more than two follow-ups in one day, and none inside working
