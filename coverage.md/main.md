@@ -24,13 +24,20 @@ coverage.md, folder edition.
 ## platforms
 
 - [email](platforms/email/main.md): working
-- [human support chat](platforms/human%20support%20chat/main.md): partial
-- [ai support chat](platforms/ai%20support%20chat/main.md): partial
+- [human support chat](platforms/human%20support%20chat/main.md): working
+- [ai support chat](platforms/ai%20support%20chat/main.md): working
 - [ticket queue w form](platforms/ticket%20queue%20w%20form/main.md): working
 - [discord support](platforms/discord%20support/main.md): partial
 - [slack support](platforms/slack%20support/main.md): working
 - [phone](platforms/phone/main.md): partial
-- [messages](platforms/messages/main.md): planned
+- [messages](platforms/messages/main.md): designed
 
-statuses were read off the code on oct 22 2026, commit 20355c1. when
-a claim changes, change the row with it.
+## the walk
+
+finding where tf the support thing is comes first, and it is built:
+`support_discovery.ts` ranks the footer, probes the common doors,
+and verdicts every landing. it is the front door of every browser
+platform above, pinned in its own test.
+
+statuses were read off the code on oct 23 2026. when a claim
+changes, change the row with it.

@@ -315,6 +315,37 @@ export async function readFileInput(
 
 // the session's current url: where the walk stands. a portal submit
 // lands on the ticket page, and that url is the case home.
+
+// read every link the page shows: text plus href. the support door is
+// usually hiding in the footer behind a word like "support", and the
+// finder needs the whole menu to rank, not one pattern at a time.
+export interface PageLink {
+  text: string;
+  href: string;
+}
+
+export async function readAllLinks(sessionId: string): Promise<PageLink[]> {
+  const result = await cdpExecute(sessionId, "Runtime.evaluate", {
+    expression: `
+      (() => {
+        const out = [];
+        for (const a of document.querySelectorAll('a[href]')) {
+          const text = (a.textContent || '').trim().replace(/\s+/g, ' ');
+          if (!text || text.length > 80) continue;
+          out.push({ text, href: a.href });
+        }
+        return JSON.stringify(out);
+      })()
+    `,
+    returnByValue: true,
+  });
+  try {
+    return result?.result?.value ? JSON.parse(result.result.value) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function readSessionUrl(sessionId: string): Promise<string | null> {
   try {
     const res = await fetch(`https://api.browserbase.com/v1/sessions/${sessionId}`, {

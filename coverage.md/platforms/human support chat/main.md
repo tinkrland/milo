@@ -1,6 +1,6 @@
 # human support chat
 
-status: partial
+status: working
 
 when a human answers the widget, the whole story rides once and
 nobody re-asks.
@@ -9,14 +9,21 @@ nobody re-asks.
 
 - `support_sites.ts` `openChatWidget`: finds and opens the widget on
   the page
+- `chat_widget.ts`: the whole wire. `sendWidgetMessage` types into
+  the vendor input shapes and sends, `pollWidgetMessages` reads the
+  message containers back out, and `runCoaxInWidget` runs the loop:
+  send, wait within the turn budget, read, send again
 - `coax.ts` `composeHandoff` + `isAnswerRelevant`: the human join
   message, and the check that a reply actually addresses the problem
-- `missions.ts` `classifyReply`: human words park the mission with
-  the boss; silence is a receipt, not an answer
+- the dispatch (`mission_manager.ts`): a human join hands off the
+  story and parks the case with the boss
+
+pinned in `chat_widget_test.ts` with a fake transport: the handoff
+fires once, the human answer parks, the widget that goes silent is
+reported, not begged.
 
 ## what is not
 
-the multi-turn queue. the widget's own message loop (send, wait,
-read, send again) is not wired to the coax engine yet; today the
-state machine is pinned but the widget transport is a seam. listed
-in `backend/README.md` as an honest gap.
+a live run. built, pinned, never yet pointed at a real widget: the
+first live fill is the proof, and it is the same status prixie's
+flowing forms carried until her first live submit.

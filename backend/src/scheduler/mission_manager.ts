@@ -331,7 +331,9 @@ export async function runManagerOnce(
 // ---------------------------------------------------------------------------
 
 import { createSession, stopSession, readSessionUrl } from "../services/browserbase.ts";
-import { findSupportPage, openChatWidget, fillTicketForm, submitForm } from "../services/support_sites.ts";
+import { openChatWidget, fillTicketForm, submitForm } from "../services/support_sites.ts";
+import { findSupportDoor } from "../services/support_discovery.ts";
+import { runCoaxInWidget, cdpWidgetTransport } from "../services/chat_widget.ts";
 
 export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise<WalkReport> => {
   const brief = parseBrief(mission.brief);
@@ -341,20 +343,33 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
   let session: { id: string } | null = null;
   try {
     session = await createSession();
-    const supportPage = await findSupportPage(session.id, mission.target_url!);
-    if (!supportPage.found) {
-      if (supportPage.walk === "footer_email" && supportPage.url) {
-        themEmail = supportPage.url.replace("mailto:", "");
-        return { submitted: false, detail: supportPage.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+    const door = await findSupportDoor(session.id, mission.target_url!);
+    evidence.push({ kind: "text", label: "support door", content: door.detail });
+    if (!door.found) {
+      if (door.door === "footer_email" && door.url) {
+        themEmail = door.url.replace("mailto:", "");
+        return { submitted: false, detail: door.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
       }
-      return { submitted: false, detail: supportPage.detail, themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+      return { submitted: false, detail: door.detail, themEmail: null, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
     }
 
-    // the chat widget first: he opens it, waits in the queue, explains
-    // once. the form is the fallback.
+    // the chat widget first: he opens it, waits in the queue, and runs
+    // the whole coax ladder through it. the form is the fallback.
     const chat = await openChatWidget(session.id);
     if (chat.found) {
       evidence.push({ kind: "text", label: "chat widget opened", content: chat.detail });
+      const run = await runCoaxInWidget(cdpWidgetTransport(session.id), {
+        problem: brief.problem,
+        attempts: brief.attempts,
+      });
+      evidence.push({ kind: "text", label: "chat conversation", content: run.detail });
+      if (run.outcome === "human") {
+        // a human has the story; the case lives with the boss now.
+        return { submitted: true, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: null, evidence };
+      }
+      if (run.outcome === "bounce" && run.pointer) {
+        return { submitted: false, detail: run.detail, themEmail, ticketUrl: null, forumTopicUrl: null, pointer: run.pointer, evidence };
+      }
     }
     const form = await fillTicketForm(session.id, brief, mission.identity);
     evidence.push({ kind: "text", label: "form read", content: form.outcome.detail });

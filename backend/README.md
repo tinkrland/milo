@@ -68,7 +68,9 @@ backend/
     │   ├── agentmail.ts            # the mailbox: briefs in, words out, replies matched
     │   ├── supabase.ts             # the case files + the claim lease
     │   ├── evidence.ts             # consolidation planning against real constraints
+    │   ├── support_discovery.ts    # finding where tf the support thing is: ranked links, probed paths, door verdicts
     │   ├── support_sites.ts        # the walks: support page, chat widget, ticket form
+    │   ├── chat_widget.ts         # the widget queue, wired: send, wait, read, send again
     │   ├── coax.ts                 # the ai-agent coax loop: explain, insist, demand the human
     │   ├── portal_followup.ts      # zendesk and cousins: status read off the page, reply in thread
     │   ├── forums.ts               # discourse walks: post the question, read the topic back
@@ -147,9 +149,12 @@ scheduler at `POST /api/tick` every few minutes.
 
 ## what is not built yet (honestly)
 
-- the coax loop's transport: the state machine is tested pure
-  (coax.ts); wiring it INTO the chat widget's message box is the next
-  walk, multi-turn with the widget's own queue
+- the chat widget's first live run: the coax loop is wired now
+  (chat_widget.ts: send, wait, read, send again, through the cdp
+  seam), pinned fake-driven; it has never met a real vendor widget,
+  and the first live fill is the proof
+- the screenshot annotation half: sharp plus an svg overlay is the
+  researched plug (docs/research/toolbox-oss.md); not wired
 - the livekit rtc wiring: the sip seam's dispatch call is real, the
   dtmf/stt/hangup halves ride prixie's lazy rtc-node factory at
   deploy time (the same pattern the voice branch uses); no keys means
@@ -161,7 +166,5 @@ scheduler at `POST /api/tick` every few minutes.
   role when allowed"): the role-ping rule is coded (allowed only,
   @everyone/@here never), but the ticket-bot buttons need the gateway
   listener; the rule that rides it is pinned
-- the resume's "screenshot annotation": consolidation is real, the
-  crop-and-arrow half is not, and that is said plainly
 - milo's own identity on forms that demand the boss's real name is
   `MILO_IDENTITY` and an open policy question, not a silent guess

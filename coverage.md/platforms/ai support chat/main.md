@@ -1,6 +1,6 @@
 # ai support chat
 
-status: partial
+status: working
 
 milo talks to the bot. the bot cannot help. milo asks for a human.
 
@@ -18,8 +18,15 @@ milo talks to the bot. the bot cannot help. milo asks for a human.
   ("email billing@..."), the mission bounces there instead of
   parking, evidence intact
 
+## what is now wired
+
+`chat_widget.ts` is the transport: the turns go in and out of a real
+widget through the cdp seam (`cdpWidgetTransport`), the loop rides
+the follow-up turn budget, and the dispatch records the outcome
+(answered, human, bounce, closed, silence). pinned fake-driven in
+`chat_widget_test.ts`.
+
 ## what is not
 
-the widget transport that feeds it turns live. the state machine
-takes messages in and gives turns out; the multi-turn wiring is the
-same gap as the human chat row.
+a live run against a vendor widget. the same honest caveat as every
+walk: built, pinned, the first live fill is the proof.
