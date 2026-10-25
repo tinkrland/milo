@@ -50,7 +50,10 @@ Deno.test("a workaround offered is a method of resolution, quoted whole", () => 
     classifyIntent("to resolve this, clear your cache and re-sync from the settings page").intent,
     "resolution_method",
   );
-  assertEquals(classifyIntent("we've deployed a fix, you should now be able to export").intent, "resolution_method");
+  // the corpus taught the boundary: a deployed fix is done, not a
+  // path for the boss to take. "we've deployed" + "should now be
+  // able" is a receipt, recorded, cadence standing.
+  assertEquals(classifyIntent("we've deployed a fix, you should now be able to export").intent, "confirmation");
 });
 
 // 5. a clarification: they need a fact he has. never guessed.

@@ -5,8 +5,9 @@ summary: milo knows what a message is for, not just what it says
 
 # message intent
 
-status: working (classifier built and pinned, wired into the brief,
-the chat ladder, and the portal and forum reads)
+status: working (classifier grown against a 293-message synthesized
+corpus, 100% on it, wired into the brief, the chat ladder, and the
+portal and forum reads)
 
 ## what is built
 
@@ -31,13 +32,19 @@ wired:
 
 pinned in `message_intent_test.ts` (8 tests: one per distinction
 plus the lookalikes), `missions_test.ts` (brief kinds),
-`coax_test.ts` (the explain line per goal).
+`coax_test.ts` (the explain line per goal), and
+`message_intent_corpus_test.ts`: 293 messages synthesized on
+adaption labs and curated by hand, every one read correctly.
+provenance: docs/research/intent-corpus.md.
 
 ## what is not
 
 the classifier is word-shapes, not understanding: strong phrases
 only (a help center's "visit our docs" is not a workaround), and
 the portal page is noisy, so every park carries the quote for the
-boss to confirm. email and discord inbound replies are classified
+boss to confirm. the corpus is synthesized: it covers the shapes a
+generator imagines, which is wide but not the wild; when real
+parked tickets disagree with the read, the row goes in the corpus
+and the rule gets a hard look. email and discord inbound replies are classified
 by the circle detector today; their intent read rides when those
 channels get read-back legs.

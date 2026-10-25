@@ -128,7 +128,14 @@ fact is the honest default, never a guess dressed as knowledge.
   questions quote the method or the question)
 - pinned: `message_intent_test.ts` (one test per distinction plus
   the lookalikes), the brief-kind and explain-line tests in
-  `missions_test.ts` and `coax_test.ts`
+  `missions_test.ts` and `coax_test.ts`, and the corpus pin
+  (`message_intent_corpus_test.ts`): 293 messages synthesized on
+  adaption labs, curated by hand, every one read correctly. the
+  corpus taught the layer its orderings (a question for the boss
+  rides even when it names his errors, a receipt beats the broken
+  words inside it, a deployed fix is done not a path, a failed
+  attempt is not a method); provenance and the curation log are in
+  `docs/research/intent-corpus.md`
 
 ## the skills not in this file yet
 
