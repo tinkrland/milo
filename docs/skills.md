@@ -90,6 +90,46 @@ problem verbatim rather than arguing the bot's points).
   `composeHandoff` and the insist lines in `src/services/coax.ts`
 - pinned: `missions_test.ts`, `coax_test.ts`, the dispatcher tests
 
+## knowing what a message is for
+
+the same words mean different things by intent. "you can use the
+api export" from support is a path offered; "can i use the api
+export with this plan?" from the boss is a question to get
+answered, not a case to be filed. he classifies every message he
+reads, anne's five:
+
+1. **support request** something is broken, an outcome is owed: the
+   case opens and he stays on it.
+2. **capability question** whether something can be done with it:
+   the goal is an answer, not a fix. briefs like this are
+   answer-kind, and the chat ladder asks "can this be done? what
+   are the options?" instead of demanding a fix for something that
+   was never broken.
+3. **resolution method** a method of resolution rides in the
+   message: the path is the answer. it parks quoted ("as a
+   workaround, use the settings export. want him to take it?"),
+   and his own repeated words never count as their method.
+4. **clarification** they need a fact he has: answer from the
+   brief, or park the question quoted for the boss. never guess
+   case facts.
+5. **confirmation** a receipt is not an outcome: it is recorded
+   and the cadence stands.
+
+the ordering is the skill: a method offered beats a thing broken
+(the method is the actionable content), a broken thing beats an
+incidental capability clause ("the export keeps failing, can i get
+the data another way" is a support request), and a statement of
+fact is the honest default, never a guess dressed as knowledge.
+
+- code: `src/services/message_intent.ts` (classifyIntent,
+  actionForIntent, briefKind, bossQuestionFor), wired into
+  parseBrief (the mission's goal), the chat ladder (the explain
+  line), and the portal and forum follow-up reads (the park
+  questions quote the method or the question)
+- pinned: `message_intent_test.ts` (one test per distinction plus
+  the lookalikes), the brief-kind and explain-line tests in
+  `missions_test.ts` and `coax_test.ts`
+
 ## the skills not in this file yet
 
 the ones the landing page promises and the engine has not built:

@@ -20,6 +20,7 @@ coverage.md, folder edition.
 - [attachment size limits](toolbox/attachment%20size%20limits/main.md): working
 - [follow up scheduling](toolbox/follow%20up%20scheduling/main.md): working
 - [circle detection](toolbox/circle%20detection/main.md): working
+- [message intent](toolbox/message%20intent/main.md): working
 - [escalation requests](toolbox/escalation%20requests/main.md): working
 
 ## platforms

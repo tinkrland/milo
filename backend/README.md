@@ -74,6 +74,7 @@ backend/
     │   ├── chat_widget.ts         # the widget queue, wired: send, wait, read, send again
     │   ├── business_calendar.ts  # WHICH two days: their weekend, their timezone, their stated hours
     │   ├── circle_detection.ts    # sent around in circles: detected, named once, then parked with the boss
+    │   ├── message_intent.ts      # what a message is FOR: request, capability question, method, clarification, receipt
     │   ├── coax.ts                 # the ai-agent coax loop: explain, insist, demand the human
     │   ├── portal_followup.ts      # zendesk and cousins: status read off the page, reply in thread
     │   ├── forums.ts               # discourse walks: post the question, read the topic back

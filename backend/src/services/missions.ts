@@ -25,12 +25,18 @@ export interface Brief {
   evidenceNotes: string[];
   targetUrl: string | null;
   urgency: "whenever" | "soon" | "now";
+  // answer-kind briefs ask whether something can be done with it;
+  // fix-kind briefs say something broke. the goal differs, so the
+  // question he asks on the boss's behalf differs.
+  kind: "fix" | "answer";
 }
 
 // parse a boss brief: a paragraph of frustrated rambling is a real
 // brief. coarse and honest: sentences that say what broke become the
 // problem, "i tried / i've tried" sentences become attempts, urls
 // become the target. no magic, no llm: the boss's own words, sorted.
+import { briefKind } from "./message_intent.ts";
+
 export function parseBrief(text: string): Brief {
   const body = (text || "").trim();
   const sentences = body
@@ -71,6 +77,7 @@ export function parseBrief(text: string): Brief {
   // not filler: "have you tried restarting" must never be asked again.
   return {
     problem: problem || sentences[0] || "unspecified problem",
+    kind: briefKind(problem || sentences[0] || ""),
     attempts,
     evidenceNotes,
     targetUrl,

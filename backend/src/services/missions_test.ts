@@ -138,3 +138,15 @@ Deno.test("classifyReply: a ticket number reads like progress", () => {
 Deno.test("classifyReply: a plain human answer is an answer", () => {
   assertEquals(classifyReply("yep that is a known bug, the fix ships next tuesday"), "answer");
 });
+
+// the brief's goal, anne's distinction: asking whether something
+// can be done with it is an answer-kind mission, not a bug report.
+Deno.test("parseBrief: a broken thing is a fix-kind brief", () => {
+  const b = parseBrief("the export button 500s on csv. it worked last week.");
+  assertEquals(b.kind, "fix");
+});
+
+Deno.test("parseBrief: a possibility question is an answer-kind brief", () => {
+  const b = parseBrief("can we use the api with the starter plan? wondering whether it can be done at all.");
+  assertEquals(b.kind, "answer");
+});

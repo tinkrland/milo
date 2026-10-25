@@ -139,7 +139,7 @@ export const COAX_MAX_TURNS = 10;
 
 export async function runCoaxInWidget(
   transport: WidgetTransport,
-  input: { problem: string; attempts: string[] },
+  input: { problem: string; attempts: string[]; kind?: "fix" | "answer" },
   opts: { turnWaitMs?: number; pollEveryMs?: number; maxTurns?: number; startState?: CoaxState; seen?: string[] } = {},
 ): Promise<CoaxRun> {
   const turnWaitMs = opts.turnWaitMs ?? COAX_TURN_WAIT_MS;
@@ -158,7 +158,7 @@ export async function runCoaxInWidget(
     const incoming = pending.join("\n");
     pending = [];
 
-    const { action, state: next } = nextCoaxTurn(state, input.problem, input.attempts, incoming);
+    const { action, state: next } = nextCoaxTurn(state, input.problem, input.attempts, incoming, input.kind);
     state = next;
 
     if (action.kind === "explain" || action.kind === "insist" || action.kind === "demand_human" || action.kind === "handoff") {

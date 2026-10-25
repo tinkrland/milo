@@ -15,12 +15,16 @@
 import { readPageText, navigateTo, findAndType, findAndClick, elementExists } from "./browserbase.ts";
 import { assertLinkSafe } from "./link_safety.ts";
 import { followUpLine } from "./missions.ts";
+import { classifyIntent, bossQuestionFor } from "./message_intent.ts";
 
 export type TicketStatus = "open" | "pending" | "on_hold" | "solved" | "closed" | "unknown";
 
 export interface TicketRead {
   status: TicketStatus;
   detail: string;
+  // the ticket page's own text: the reply he is reading rides on
+  // it, and the intent read happens on the words, not the chip.
+  pageText?: string;
 }
 
 // the status off the page. zendesk names its chips exactly; the rest
@@ -80,7 +84,7 @@ export async function readTicketStatus(sessionId: string, ticketUrl: string): Pr
   }
   await navigateTo(sessionId, ticketUrl);
   const text = await readPageText(sessionId);
-  return { status: classifyTicketStatus(text), detail: `status read off the page at ${ticketUrl}` };
+  return { status: classifyTicketStatus(text), detail: `status read off the page at ${ticketUrl}`, pageText: text };
 }
 
 const REPLY_SELECTORS = [
@@ -145,6 +149,37 @@ export async function followUpPortal(
 
   await store.addEvidence({ mission_id: mission.id, kind: "log", label: "portal status", content: `${read.status}: ${read.detail}` });
 
+  // the words on the page carry intent: a method of resolution
+  // offered is the case moving; a question asked is a fact the boss
+  // has. the chip alone says neither.
+  const intent = classifyIntent(read.pageText ?? "");
+  if (read.pageText) {
+    await store.addEvidence({
+      mission_id: mission.id,
+      kind: "text",
+      label: "message intent",
+      content: `${intent.intent}${intent.salient ? `: "${intent.salient}"` : ""}`,
+    });
+  }
+  // his own words never count as their method offered: the salient
+  // quote riding in an outbound line is a repeat, not news.
+  if (intent.intent === "resolution_method" && intent.salient) {
+    const own = (await store.listThreadMessages(mission.id))
+      .filter((m) => m.direction === "outbound")
+      .map((m) => m.body);
+    if (own.some((b) => b.includes(intent.salient!.slice(0, 40)))) {
+      intent.intent = "confirmation";
+      intent.salient = null;
+    }
+  }
+  if (intent.intent === "resolution_method") {
+    await store.updateMission(mission.id, {
+      status: "boss_decision",
+      boss_decision_question: bossQuestionFor(intent, ""),
+    });
+    return "parked: a method of resolution was offered, the quote rides to the boss";
+  }
+
   const lastActivityDays = mission.last_contact_at
     ? (now.getTime() - new Date(mission.last_contact_at).getTime()) / 86_400_000
     : 0;
@@ -155,8 +190,9 @@ export async function followUpPortal(
     return `parked: ${decision.reason}`;
   }
   if (decision.park === "boss") {
-    await store.updateMission(mission.id, { status: "boss_decision", boss_decision_question: decision.reason });
-    return `parked: ${decision.reason}`;
+    const question = read.pageText ? bossQuestionFor(intent, decision.reason) : decision.reason;
+    await store.updateMission(mission.id, { status: "boss_decision", boss_decision_question: question });
+    return `parked: ${question}`;
   }
   if (!decision.reply) {
     return `watching: ${decision.reason}`;

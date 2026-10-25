@@ -422,6 +422,13 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
     session = await createSession();
     const door = await findSupportDoor(session.id, mission.target_url!);
     evidence.push({ kind: "text", label: "support door", content: door.detail });
+    if (brief.kind === "answer") {
+      evidence.push({
+        kind: "text",
+        label: "mission goal",
+        content: "answer-kind brief: the goal is an answer, not a fix",
+      });
+    }
     // their hours and days, read off their own page, beat every
     // guess: the follow-up clock runs on what the door itself says.
     const calendar = detectBusinessCalendar(door.pageText);
@@ -446,6 +453,7 @@ export const defaultWalker: SiteWalker = async (mission: MissionRecord): Promise
       const run = await runCoaxInWidget(cdpWidgetTransport(session.id), {
         problem: brief.problem,
         attempts: brief.attempts,
+        kind: brief.kind,
       });
       evidence.push({ kind: "text", label: "chat conversation", content: run.detail });
       if (run.outcome === "human") {

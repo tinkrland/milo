@@ -105,6 +105,7 @@ export function nextCoaxTurn(
   problem: string,
   attempts: string[],
   incoming: string,
+  kind: "fix" | "answer" = "fix",
 ): { action: CoaxAction; state: CoaxState } {
   const s: CoaxState = { ...state, turn: state.turn + 1 };
   const inc = incoming || "";
@@ -113,7 +114,7 @@ export function nextCoaxTurn(
   // the attempts, the question. nothing coax-y happens before it.
   if (!s.explained) {
     s.explained = true;
-    return { action: { kind: "explain", line: explainLine(problem, attempts) }, state: s };
+    return { action: { kind: "explain", line: explainLine(problem, attempts, kind) }, state: s };
   }
 
   // a human in the room changes everything: the story, once, whole.
@@ -161,9 +162,13 @@ export function nextCoaxTurn(
 
 // the first message of any coax: the whole problem, the attempts, the
 // question. the bot never gets to ask "have you tried".
-export function explainLine(problem: string, attempts: string[]): string {
+export function explainLine(problem: string, attempts: string[], kind: "fix" | "answer" = "fix"): string {
   const tried = attempts.length ? ` already tried: ${attempts.join("; ")}.` : "";
-  return `${problem}${tried} what is the actual fix?`;
+  // a fix-kind brief asks for the fix. an answer-kind brief asks
+  // whether the thing can be done at all, and for the options:
+  // the same words would file a case where the goal is an answer.
+  const ask = kind === "answer" ? "can this be done? what are the options?" : "what is the actual fix?";
+  return `${problem}${tried} ${ask}`;
 }
 
 function insistLine(problem: string, n: number): string {

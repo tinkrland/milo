@@ -5,6 +5,7 @@
 import { assertEquals } from "jsr:@std/assert";
 import {
   composeHandoff,
+  explainLine,
   findChannelPointer,
   freshCoax,
   isAnswerRelevant,
@@ -97,4 +98,18 @@ Deno.test("pointers: email, urls, and discord invites", () => {
 Deno.test("the handoff names milo and the behalf, never claims to be the boss", () => {
   const h = composeHandoff("the upload fails", ["cleared cache"]);
   assertEquals(h.includes("i am milo, writing on behalf"), true);
+});
+
+// answer-kind briefs ask for the answer, not the fix: the same
+// explain would file a case where the goal is a question.
+Deno.test("the explain line asks for the answer on an answer-kind brief", () => {
+  const line = explainLine("can we use the api with the starter plan?", [], "answer");
+  assertEquals(line.includes("can this be done? what are the options?"), true);
+  assertEquals(line.includes("what is the actual fix?"), false);
+});
+
+Deno.test("the explain line keeps asking for the fix on a fix-kind brief", () => {
+  const line = explainLine("the export button 500s on csv.", ["cleared cache"], "fix");
+  assertEquals(line.includes("what is the actual fix?"), true);
+  assertEquals(line.includes("already tried: cleared cache"), true);
 });

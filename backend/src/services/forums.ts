@@ -20,6 +20,7 @@ import {
 } from "./browserbase.ts";
 import { assertLinkSafe } from "./link_safety.ts";
 import { composeIssueMessage, followUpLine, parseBrief } from "./missions.ts";
+import { classifyIntent, bossQuestionFor } from "./message_intent.ts";
 
 export interface ForumWalk {
   posted: boolean;
@@ -96,6 +97,9 @@ export interface TopicRead {
   replies: number;
   hasStaffReply: boolean;
   detail: string;
+  // the topic's own text: the staff answer rides on it, and the
+  // intent read happens on the words, not the badge.
+  pageText?: string;
 }
 
 // read a topic back: the reply count off the page, and whether anyone
@@ -105,7 +109,7 @@ export interface TopicRead {
 export async function readTopicBack(sessionId: string, topicUrl: string): Promise<TopicRead> {
   const verdict = await assertLinkSafe(topicUrl);
   if (!verdict.safe) {
-    return { replies: 0, hasStaffReply: false, detail: `blocked by safety gate: ${verdict.reason}` };
+    return { replies: 0, hasStaffReply: false, detail: `blocked by safety gate: ${verdict.reason}`, pageText: "" };
   }
   await navigateTo(sessionId, topicUrl);
   const text = await readPageText(sessionId);
@@ -115,12 +119,12 @@ export async function readTopicBack(sessionId: string, topicUrl: string): Promis
   };
 }
 
-export function parseTopicPage(pageText: string): { replies: number; hasStaffReply: boolean } {
+export function parseTopicPage(pageText: string): { replies: number; hasStaffReply: boolean; pageText: string } {
   const t = (pageText || "").toLowerCase();
   const m = t.match(/(\d+)\s*(replies?|answers?|comments?)/);
   const replies = m ? Number(m[1]) : 0;
   const hasStaffReply = /staff|admin|moderator|employee|official|support team|community (leader|guide)/.test(t);
-  return { replies, hasStaffReply };
+  return { replies, hasStaffReply, pageText: pageText ?? "" };
 }
 
 // a quiet topic earns one bump on the cadence, and only if the boss's
@@ -181,7 +185,7 @@ export async function followUpForum(
   overrideLine?: string,
 ): Promise<string> {
   const session = await createSession();
-  let read: { replies: number; hasStaffReply: boolean; detail: string };
+  let read: TopicRead;
   try {
     read = await readTopicBack(session.id, mission.forum_url!);
   } finally {
@@ -191,7 +195,21 @@ export async function followUpForum(
 
   const decision = shouldBumpTopic({ ...read, detail: "" }, mission.follow_up_count);
   if (decision.park === "boss") {
-    await store.updateMission(mission.id, { status: "boss_decision", boss_decision_question: "someone with authority answered the forum topic: read the answer and close the case, or send milo back in" });
+    // staff words carry intent: a workaround offered or a question
+    // asked rides quoted, because the boss answers the quote, not
+    // the paraphrase.
+    const intent = classifyIntent(read.pageText ?? "");
+    await store.addEvidence({
+      mission_id: mission.id,
+      kind: "text",
+      label: "message intent",
+      content: `${intent.intent}${intent.salient ? `: "${intent.salient}"` : ""}`,
+    });
+    const question = bossQuestionFor(
+      intent,
+      "someone with authority answered the forum topic: read the answer and close the case, or send milo back in",
+    );
+    await store.updateMission(mission.id, { status: "boss_decision", boss_decision_question: question });
     return "parked: staff answered on the forum";
   }
   if (!decision.bump) {
